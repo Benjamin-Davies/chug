@@ -39,7 +39,6 @@ fn main() -> anyhow::Result<()> {
                         "Formula {name:?} does not have a corresponding bottle",
                     );
 
-                    println!("Dowloading {} {}...", name, formula.versions.stable);
                     formula.download_bottle()?;
 
                     Ok(())
