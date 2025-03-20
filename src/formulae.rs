@@ -2,6 +2,8 @@ use std::collections::BTreeMap;
 
 use serde::Deserialize;
 
+use crate::bottles::Bottles;
+
 const FORMULA_API: &str = "https://formulae.brew.sh/api/formula.json";
 
 #[derive(Debug, Deserialize)]
@@ -10,6 +12,7 @@ pub struct Formula {
     pub aliases: Vec<String>,
     pub dependencies: Vec<String>,
     pub versions: Versions,
+    pub bottle: Bottles,
 }
 
 #[derive(Debug, Deserialize)]

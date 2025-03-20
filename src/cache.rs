@@ -72,7 +72,7 @@ where
     }
 }
 
-pub fn load_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
+fn load_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
     let metadata = path.metadata()?;
     anyhow::ensure!(metadata.is_file());
     anyhow::ensure!(
@@ -85,7 +85,7 @@ pub fn load_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
     Ok(formulae)
 }
 
-pub fn store(path: &Path, contents: &str) -> anyhow::Result<()> {
+fn store(path: &Path, contents: &str) -> anyhow::Result<()> {
     fs::write(path, contents)?;
     Ok(())
 }
@@ -96,4 +96,13 @@ macro_rules! cache {
         static CACHE: Cache<$ty> = Cache::new();
         &CACHE
     }};
+}
+
+pub fn http_client() -> &'static reqwest::blocking::Client {
+    cache!(reqwest::blocking::Client)
+        .get_or_init(|| {
+            let client = reqwest::blocking::Client::new();
+            Ok(client)
+        })
+        .unwrap()
 }

@@ -1,3 +1,5 @@
+use std::fs;
+
 use clap::{Parser, Subcommand};
 
 use chug::formulae::Formula;
@@ -31,12 +33,15 @@ fn main() -> anyhow::Result<()> {
             );
 
             for formula in formulae.values() {
-                println!("{} {}", formula.name, formula.versions.stable);
                 anyhow::ensure!(
                     formula.versions.bottle,
                     "Formula {:?} does not have a corresponding bottle",
                     formula.name,
                 );
+
+                println!("Dowloading {} {}...", formula.name, formula.versions.stable);
+                let bottle = formula.bottle.stable.current_target()?.fetch()?;
+                fs::write("target/bottle", bottle)?;
             }
         }
     }
