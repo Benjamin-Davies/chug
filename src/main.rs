@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use chug::Formula;
+use chug::formulae::Formula;
 
 #[derive(Parser)]
 struct Cli {
