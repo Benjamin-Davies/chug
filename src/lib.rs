@@ -1,4 +1,5 @@
-pub mod formulae;
-
+#[macro_use]
+mod cache;
 mod dirs;
-mod disk_cache;
+
+pub mod formulae;
