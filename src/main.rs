@@ -23,12 +23,21 @@ fn main() -> anyhow::Result<()> {
                 "Must specify one or more bottles to install",
             );
 
-            let dependencies =
-                Formula::resolve_dependencies(bottles.iter().map(String::as_str).collect())?;
+            let new_roots = bottles.iter().map(String::as_str).collect();
+            let formulae = Formula::resolve_dependencies(new_roots)?;
             println!(
                 "Installing: {}",
-                dependencies.keys().cloned().collect::<Vec<_>>().join(" ")
+                formulae.keys().cloned().collect::<Vec<_>>().join(" ")
             );
+
+            for formula in formulae.values() {
+                println!("{} {}", formula.name, formula.versions.stable);
+                anyhow::ensure!(
+                    formula.versions.bottle,
+                    "Formula {:?} does not have a corresponding bottle",
+                    formula.name,
+                );
+            }
         }
     }
 

@@ -9,9 +9,16 @@ const FORMULA_API: &str = "https://formulae.brew.sh/api/formula.json";
 
 #[derive(Debug, Deserialize)]
 pub struct Formula {
-    name: String,
-    aliases: Vec<String>,
-    dependencies: Vec<String>,
+    pub name: String,
+    pub aliases: Vec<String>,
+    pub dependencies: Vec<String>,
+    pub versions: Versions,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Versions {
+    pub stable: String,
+    pub bottle: bool,
 }
 
 impl Formula {
