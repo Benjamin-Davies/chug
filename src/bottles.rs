@@ -1,11 +1,11 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, fs};
 
 use data_encoding::HEXLOWER;
 use flate2::read::GzDecoder;
 use reqwest::blocking::Response;
 use serde::Deserialize;
 
-use crate::{cache::http_client, dirs, validate::Validate};
+use crate::{cache::http_client, dirs, formulae::Formula, validate::Validate};
 
 #[derive(Debug, Deserialize)]
 pub struct Bottles {
@@ -23,6 +23,26 @@ pub struct FileMetadata {
     pub sha256: String,
 }
 
+impl Formula {
+    pub fn download_bottle(&self) -> anyhow::Result<()> {
+        let mut raw_data = self.bottle.stable.current_target()?.fetch()?;
+
+        let cellar_path = dirs::cellar_dir()?;
+        let bottle_path = cellar_path.join(&self.name).join(&self.versions.stable);
+        if bottle_path.exists() {
+            fs::remove_dir_all(&bottle_path)?;
+        }
+
+        let unzip = GzDecoder::new(&mut raw_data);
+        let mut tar = tar::Archive::new(unzip);
+        tar.unpack(cellar_path)?;
+
+        raw_data.validate()?;
+
+        Ok(())
+    }
+}
+
 impl Bottle {
     pub fn current_target(&self) -> anyhow::Result<&FileMetadata> {
         let target = crate::target::Target::current_str()?;
@@ -33,19 +53,6 @@ impl Bottle {
         } else {
             anyhow::bail!("No bottle for target: {target}");
         }
-    }
-
-    pub fn download(&self) -> anyhow::Result<()> {
-        let mut raw_data = self.current_target()?.fetch()?;
-
-        let unzip = GzDecoder::new(&mut raw_data);
-        let mut tar = tar::Archive::new(unzip);
-        let path = dirs::cellar_dir()?;
-        tar.unpack(path)?;
-
-        raw_data.validate()?;
-
-        Ok(())
     }
 }
 

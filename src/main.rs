@@ -1,6 +1,7 @@
 use clap::{Parser, Subcommand};
 
 use chug::formulae::Formula;
+use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 #[derive(Parser)]
 struct Cli {
@@ -30,16 +31,20 @@ fn main() -> anyhow::Result<()> {
                 formulae.keys().cloned().collect::<Vec<_>>().join(" ")
             );
 
-            for formula in formulae.values() {
-                anyhow::ensure!(
-                    formula.versions.bottle,
-                    "Formula {:?} does not have a corresponding bottle",
-                    formula.name,
-                );
+            formulae
+                .par_iter()
+                .map(|(name, formula)| {
+                    anyhow::ensure!(
+                        formula.versions.bottle,
+                        "Formula {name:?} does not have a corresponding bottle",
+                    );
 
-                println!("Dowloading {} {}...", formula.name, formula.versions.stable);
-                formula.bottle.stable.download()?;
-            }
+                    println!("Dowloading {} {}...", name, formula.versions.stable);
+                    formula.download_bottle()?;
+
+                    Ok(())
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?;
         }
     }
 
