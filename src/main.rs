@@ -1,5 +1,3 @@
-use std::fs;
-
 use clap::{Parser, Subcommand};
 
 use chug::formulae::Formula;
@@ -40,8 +38,7 @@ fn main() -> anyhow::Result<()> {
                 );
 
                 println!("Dowloading {} {}...", formula.name, formula.versions.stable);
-                let bottle = formula.bottle.stable.current_target()?.fetch()?;
-                fs::write("target/bottle", bottle)?;
+                formula.bottle.stable.download()?;
             }
         }
     }

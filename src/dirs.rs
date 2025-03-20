@@ -30,3 +30,30 @@ pub fn cache_dir() -> anyhow::Result<&'static Path> {
     })?;
     Ok(path)
 }
+
+pub fn data_dir() -> anyhow::Result<&'static Path> {
+    let path = cache!(PathBuf).get_or_init(|| {
+        let mut path = if let Ok(xdg_dir) = env::var("XDG_DATA_HOME") {
+            PathBuf::from(xdg_dir)
+        } else {
+            home_dir()?.join(".local/share")
+        };
+        path.push(PROGRAM_NAME);
+
+        fs::create_dir_all(&path).expect("Could not create data dir");
+
+        Ok(path)
+    })?;
+    Ok(path)
+}
+
+pub fn cellar_dir() -> anyhow::Result<&'static Path> {
+    let path = cache!(PathBuf).get_or_init(|| {
+        let path = data_dir()?.join("cellar");
+
+        fs::create_dir_all(&path).expect("Could not create cellar dir");
+
+        Ok(path)
+    })?;
+    Ok(path)
+}
