@@ -1,5 +1,6 @@
 use std::{collections::BTreeMap, fs, path::Path};
 
+use anyhow::Context;
 use data_encoding::HEXLOWER;
 use flate2::read::GzDecoder;
 use reqwest::blocking::Response;
@@ -33,7 +34,12 @@ impl Formula {
         }
 
         println!("Dowloading {} {}...", self.name, self.versions.stable);
-        let result = self.bottle.stable.download_inner(&cellar_path);
+        let result = self.bottle.stable.download_inner(
+            &cellar_path,
+            &bottle_path,
+            &self.name,
+            &self.versions.stable,
+        );
 
         if result.is_err() && bottle_path.exists() {
             let _ = fs::remove_dir_all(&bottle_path);
@@ -49,12 +55,40 @@ impl Formula {
 impl Bottle {
     /// Expects the bottle to not already be downloaded and will not clean up if
     /// the download fails.
-    fn download_inner(&self, cellar_path: &Path) -> anyhow::Result<()> {
+    fn download_inner(
+        &self,
+        cellar_path: &Path,
+        bottle_path: &Path,
+        name: &str,
+        version: &str,
+    ) -> anyhow::Result<()> {
         let mut raw_data = self.current_target()?.fetch()?;
 
         let unzip = GzDecoder::new(&mut raw_data);
         let mut tar = tar::Archive::new(unzip);
         tar.unpack(cellar_path)?;
+
+        // Sometimes the bottle directory has "_1" appended to the version
+        // If it does, we want to rename it to the correct version
+        if !bottle_path.exists() {
+            let parent = cellar_path.join(name);
+            let mut found = false;
+            for child in fs::read_dir(parent)? {
+                let child = child?;
+                let file_name = child.file_name();
+                let file_name = file_name.to_str().context("Invalid file name")?;
+                if file_name.starts_with(&version) && file_name[version.len()..].starts_with('_') {
+                    fs::rename(child.path(), bottle_path)?;
+                    found = true;
+                    break;
+                }
+            }
+
+            anyhow::ensure!(
+                found,
+                "Failed to find where bottle {name:?} was extracted to",
+            );
+        }
 
         raw_data.validate()?;
 
