@@ -159,6 +159,9 @@ impl DownloadedBottle<'_> {
             let entry_path = entry.path();
             let entry_name = entry.file_name();
             let dest = bin_dir.join(entry_name);
+            if dest.exists() {
+                continue;
+            }
 
             unix::fs::symlink(entry_path, dest)?;
         }
