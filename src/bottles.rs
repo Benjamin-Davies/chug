@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::PathBuf};
+use std::{collections::BTreeMap, fs, os::unix, path::PathBuf};
 
 use anyhow::Context;
 use data_encoding::HEXLOWER;
@@ -24,11 +24,20 @@ pub struct FileMetadata {
     pub sha256: String,
 }
 
+#[derive(Debug)]
+pub struct DownloadedBottle<'a> {
+    pub formula: &'a Formula,
+    pub path: PathBuf,
+}
+
 impl Formula {
-    pub fn download_bottle(&self) -> anyhow::Result<PathBuf> {
+    pub fn download_bottle(&self) -> anyhow::Result<DownloadedBottle> {
         if let Some(path) = self.bottle_path()? {
             println!("Bottle {:?} already downloaded", self.name);
-            return Ok(path);
+            return Ok(DownloadedBottle {
+                formula: self,
+                path,
+            });
         }
 
         println!("Dowloading {} {}...", self.name, self.versions.stable);
@@ -48,7 +57,7 @@ impl Formula {
 
     /// Expects the bottle to not already be downloaded and will not clean up if
     /// the download fails.
-    fn download_bottle_inner(&self) -> anyhow::Result<PathBuf> {
+    fn download_bottle_inner(&self) -> anyhow::Result<DownloadedBottle> {
         let bottles_dir = dirs::bottles_dir()?;
         let file_metadata = self.bottle.stable.current_target()?;
 
@@ -63,7 +72,10 @@ impl Formula {
 
         raw_data.validate()?;
 
-        Ok(path)
+        Ok(DownloadedBottle {
+            formula: self,
+            path,
+        })
     }
 
     pub fn bottle_path(&self) -> anyhow::Result<Option<PathBuf>> {
@@ -125,5 +137,32 @@ impl FileMetadata {
         let reader = Validate::new(response, sha256);
 
         Ok(reader)
+    }
+}
+
+impl DownloadedBottle<'_> {
+    pub fn link(&self) -> anyhow::Result<()> {
+        println!(
+            "Linking {} {}...",
+            self.formula.name, self.formula.versions.stable,
+        );
+
+        let bin_dir = dirs::bin_dir()?;
+        let bottle_bin_dir = self.path.join("bin");
+
+        if !bottle_bin_dir.exists() {
+            anyhow::bail!("Bottle does not contain a bin directory");
+        }
+
+        for entry in fs::read_dir(bottle_bin_dir)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            let entry_name = entry.file_name();
+            let dest = bin_dir.join(entry_name);
+
+            unix::fs::symlink(entry_path, dest)?;
+        }
+
+        Ok(())
     }
 }

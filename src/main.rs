@@ -31,7 +31,7 @@ fn main() -> anyhow::Result<()> {
                 formulae.keys().cloned().collect::<Vec<_>>().join(" ")
             );
 
-            formulae
+            let bottles = formulae
                 .par_iter()
                 .map(|(name, formula)| {
                     anyhow::ensure!(
@@ -39,7 +39,16 @@ fn main() -> anyhow::Result<()> {
                         "Formula {name:?} does not have a corresponding bottle",
                     );
 
-                    formula.download_bottle()?;
+                    let bottle = formula.download_bottle()?;
+
+                    Ok(bottle)
+                })
+                .collect::<anyhow::Result<Vec<_>>>()?;
+
+            bottles
+                .par_iter()
+                .map(|bottle| {
+                    bottle.link()?;
 
                     Ok(())
                 })
