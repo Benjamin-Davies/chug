@@ -47,11 +47,11 @@ pub fn data_dir() -> anyhow::Result<&'static Path> {
     Ok(path)
 }
 
-pub fn cellar_dir() -> anyhow::Result<&'static Path> {
+pub fn bottles_dir() -> anyhow::Result<&'static Path> {
     let path = cache!(PathBuf).get_or_init(|| {
-        let path = data_dir()?.join("cellar");
+        let path = data_dir()?.join("bottles");
 
-        fs::create_dir_all(&path).expect("Could not create cellar dir");
+        fs::create_dir_all(&path).expect("Could not create bottles dir");
 
         Ok(path)
     })?;

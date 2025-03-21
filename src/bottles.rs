@@ -26,8 +26,8 @@ pub struct FileMetadata {
 
 impl Formula {
     pub fn download_bottle(&self) -> anyhow::Result<()> {
-        let cellar_path = dirs::cellar_dir()?;
-        let bottle_path = cellar_path.join(&self.name).join(&self.versions.stable);
+        let bottles_path = dirs::bottles_dir()?;
+        let bottle_path = bottles_path.join(&self.name).join(&self.versions.stable);
         if bottle_path.exists() {
             println!("Bottle {:?} already downloaded", self.name);
             return Ok(());
@@ -35,7 +35,7 @@ impl Formula {
 
         println!("Dowloading {} {}...", self.name, self.versions.stable);
         let result = self.bottle.stable.download_inner(
-            &cellar_path,
+            &bottles_path,
             &bottle_path,
             &self.name,
             &self.versions.stable,
@@ -57,7 +57,7 @@ impl Bottle {
     /// the download fails.
     fn download_inner(
         &self,
-        cellar_path: &Path,
+        bottles_path: &Path,
         bottle_path: &Path,
         name: &str,
         version: &str,
@@ -66,12 +66,12 @@ impl Bottle {
 
         let unzip = GzDecoder::new(&mut raw_data);
         let mut tar = tar::Archive::new(unzip);
-        tar.unpack(cellar_path)?;
+        tar.unpack(bottles_path)?;
 
         // Sometimes the bottle directory has "_1" appended to the version
         // If it does, we want to rename it to the correct version
         if !bottle_path.exists() {
-            let parent = cellar_path.join(name);
+            let parent = bottles_path.join(name);
             let mut found = false;
             for child in fs::read_dir(parent)? {
                 let child = child?;
