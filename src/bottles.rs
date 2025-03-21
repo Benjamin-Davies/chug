@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, fs, path::Path};
+use std::{collections::BTreeMap, fs, path::PathBuf};
 
 use anyhow::Context;
 use data_encoding::HEXLOWER;
@@ -25,76 +25,77 @@ pub struct FileMetadata {
 }
 
 impl Formula {
-    pub fn download_bottle(&self) -> anyhow::Result<()> {
-        let bottles_path = dirs::bottles_dir()?;
-        let bottle_path = bottles_path.join(&self.name).join(&self.versions.stable);
-        if bottle_path.exists() {
+    pub fn download_bottle(&self) -> anyhow::Result<PathBuf> {
+        if let Some(path) = self.bottle_path()? {
             println!("Bottle {:?} already downloaded", self.name);
-            return Ok(());
+            return Ok(path);
         }
 
         println!("Dowloading {} {}...", self.name, self.versions.stable);
-        let result = self.bottle.stable.download_inner(
-            &bottles_path,
-            &bottle_path,
-            &self.name,
-            &self.versions.stable,
-        );
+        let result = self.download_bottle_inner();
 
-        if result.is_err() && bottle_path.exists() {
-            let _ = fs::remove_dir_all(&bottle_path);
-            if let Some(parent) = bottle_path.parent() {
-                let _ = fs::remove_dir(parent);
+        if result.is_err() {
+            if let Ok(Some(path)) = self.bottle_path() {
+                let _ = fs::remove_dir_all(&path);
+                if let Some(parent) = path.parent() {
+                    let _ = fs::remove_dir(parent);
+                }
             }
         }
 
-        result
+        result.with_context(|| format!("Downloading {} {}", self.name, self.versions.stable))
+    }
+
+    /// Expects the bottle to not already be downloaded and will not clean up if
+    /// the download fails.
+    fn download_bottle_inner(&self) -> anyhow::Result<PathBuf> {
+        let bottles_dir = dirs::bottles_dir()?;
+        let file_metadata = self.bottle.stable.current_target()?;
+
+        let mut raw_data = file_metadata.fetch()?;
+        let unzip = GzDecoder::new(&mut raw_data);
+        let mut tar = tar::Archive::new(unzip);
+        tar.unpack(bottles_dir)?;
+
+        let path = self
+            .bottle_path()?
+            .context("Failed to find where bottle was extracted to")?;
+
+        raw_data.validate()?;
+
+        Ok(path)
+    }
+
+    pub fn bottle_path(&self) -> anyhow::Result<Option<PathBuf>> {
+        let name = self.name.as_str();
+        let version = self.versions.stable.as_str();
+
+        let bottles_path = dirs::bottles_dir()?;
+        let parent_path = bottles_path.join(name);
+        if !parent_path.exists() {
+            return Ok(None);
+        }
+
+        let path = parent_path.join(version);
+        if path.exists() {
+            return Ok(Some(path));
+        }
+
+        // Sometimes the bottle directory has "_1" appended to the version
+        for child in fs::read_dir(parent_path)? {
+            let child = child?;
+            let file_name = child.file_name();
+            let file_name = file_name.to_str().context("Invalid file name")?;
+            if file_name.starts_with(&version) && file_name[version.len()..].starts_with('_') {
+                return Ok(Some(child.path()));
+            }
+        }
+
+        Ok(None)
     }
 }
 
 impl Bottle {
-    /// Expects the bottle to not already be downloaded and will not clean up if
-    /// the download fails.
-    fn download_inner(
-        &self,
-        bottles_path: &Path,
-        bottle_path: &Path,
-        name: &str,
-        version: &str,
-    ) -> anyhow::Result<()> {
-        let mut raw_data = self.current_target()?.fetch()?;
-
-        let unzip = GzDecoder::new(&mut raw_data);
-        let mut tar = tar::Archive::new(unzip);
-        tar.unpack(bottles_path)?;
-
-        // Sometimes the bottle directory has "_1" appended to the version
-        // If it does, we want to rename it to the correct version
-        if !bottle_path.exists() {
-            let parent = bottles_path.join(name);
-            let mut found = false;
-            for child in fs::read_dir(parent)? {
-                let child = child?;
-                let file_name = child.file_name();
-                let file_name = file_name.to_str().context("Invalid file name")?;
-                if file_name.starts_with(&version) && file_name[version.len()..].starts_with('_') {
-                    fs::rename(child.path(), bottle_path)?;
-                    found = true;
-                    break;
-                }
-            }
-
-            anyhow::ensure!(
-                found,
-                "Failed to find where bottle {name:?} was extracted to",
-            );
-        }
-
-        raw_data.validate()?;
-
-        Ok(())
-    }
-
     pub fn current_target(&self) -> anyhow::Result<&FileMetadata> {
         let target = crate::target::Target::current_str()?;
         if let Some(file) = self.files.get(target) {
