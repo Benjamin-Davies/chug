@@ -48,6 +48,7 @@ fn main() -> anyhow::Result<()> {
                     );
 
                     let bottle = formula.download_bottle()?;
+                    bottle.patch()?;
 
                     Ok(bottle)
                 })

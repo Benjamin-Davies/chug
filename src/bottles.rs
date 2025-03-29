@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fs, os::unix, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    fs,
+    os::unix,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use data_encoding::HEXLOWER;
@@ -11,6 +16,7 @@ use crate::{
     db::models::{DownloadedBottle, LinkedFile},
     dirs,
     formulae::Formula,
+    macho, magic,
     validate::Validate,
 };
 
@@ -136,6 +142,31 @@ impl FileMetadata {
 }
 
 impl DownloadedBottle {
+    pub fn patch(&self) -> anyhow::Result<()> {
+        fn traverse(path: &Path) -> anyhow::Result<()> {
+            let stat = path.metadata()?;
+            if stat.is_dir() {
+                for entry in fs::read_dir(path)? {
+                    let entry = entry?;
+                    traverse(&entry.path())?;
+                }
+            } else if stat.is_file() {
+                match magic::detect(path).unwrap_or(magic::Magic::Unknown) {
+                    magic::Magic::MachO => macho::patch(path)?,
+                    _ => (),
+                }
+            }
+
+            Ok(())
+        }
+
+        println!("Patching {} {}...", self.name(), self.version());
+
+        traverse(self.path())?;
+
+        Ok(())
+    }
+
     pub fn link(&self) -> anyhow::Result<()> {
         println!("Linking {} {}...", self.name(), self.version());
 
