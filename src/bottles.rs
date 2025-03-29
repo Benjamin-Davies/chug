@@ -147,22 +147,20 @@ impl DownloadedBottle {
         let bin_dir = dirs::bin_dir()?;
         let bottle_bin_dir = PathBuf::from(&self.path).join("bin");
 
-        if !bottle_bin_dir.exists() {
-            anyhow::bail!("Bottle does not contain a bin directory");
-        }
+        if bottle_bin_dir.exists() {
+            for entry in fs::read_dir(bottle_bin_dir)? {
+                let entry = entry?;
+                let entry_path = entry.path();
+                let entry_name = entry.file_name();
+                let dest = bin_dir.join(entry_name);
+                if dest.exists() {
+                    continue;
+                }
 
-        for entry in fs::read_dir(bottle_bin_dir)? {
-            let entry = entry?;
-            let entry_path = entry.path();
-            let entry_name = entry.file_name();
-            let dest = bin_dir.join(entry_name);
-            if dest.exists() {
-                continue;
+                unix::fs::symlink(&entry_path, &dest)?;
+
+                LinkedFile::create(&dest, self)?;
             }
-
-            unix::fs::symlink(&entry_path, &dest)?;
-
-            LinkedFile::create(&dest, self)?;
         }
 
         Ok(())
