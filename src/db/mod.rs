@@ -11,7 +11,7 @@ pub mod schema;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-pub fn connection() -> anyhow::Result<&'static Mutex<SqliteConnection>> {
+fn connection() -> anyhow::Result<&'static Mutex<SqliteConnection>> {
     cache!(Mutex<SqliteConnection>).get_or_init(|| {
         let path = db_file()?.to_str().context("DB file path is non-utf8")?;
         let mut db = SqliteConnection::establish(path)?;

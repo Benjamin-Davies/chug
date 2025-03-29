@@ -1,9 +1,4 @@
-use std::{
-    collections::BTreeMap,
-    fs,
-    os::unix,
-    path::{Path, PathBuf},
-};
+use std::{collections::BTreeMap, fs, os::unix, path::PathBuf};
 
 use anyhow::Context;
 use data_encoding::HEXLOWER;
@@ -142,10 +137,10 @@ impl FileMetadata {
 
 impl DownloadedBottle {
     pub fn link(&self) -> anyhow::Result<()> {
-        println!("Linking {} {}...", self.name, self.version);
+        println!("Linking {} {}...", self.name(), self.version());
 
         let bin_dir = dirs::bin_dir()?;
-        let bottle_bin_dir = PathBuf::from(&self.path).join("bin");
+        let bottle_bin_dir = PathBuf::from(self.path()).join("bin");
 
         if bottle_bin_dir.exists() {
             for entry in fs::read_dir(bottle_bin_dir)? {
@@ -167,10 +162,10 @@ impl DownloadedBottle {
     }
 
     pub fn unlink(&self) -> anyhow::Result<()> {
-        println!("Unlinking {} {}...", self.name, self.version);
+        println!("Unlinking {} {}...", self.name(), self.version());
 
         for linked_file in self.linked_files()? {
-            fs::remove_file(&linked_file.path)?;
+            fs::remove_file(linked_file.path())?;
 
             linked_file.delete()?;
         }
@@ -179,11 +174,10 @@ impl DownloadedBottle {
     }
 
     pub fn remove(&self) -> anyhow::Result<()> {
-        println!("Deleting {} {}...", self.name, self.version);
+        println!("Deleting {} {}...", self.name(), self.version());
 
-        let path: &Path = self.path.as_ref();
-        fs::remove_dir_all(path)?;
-        if let Some(parent) = path.parent() {
+        fs::remove_dir_all(self.path())?;
+        if let Some(parent) = self.path().parent() {
             let _ = fs::remove_dir(parent);
         }
 

@@ -70,7 +70,7 @@ fn main() -> anyhow::Result<()> {
                 "Removing: {}",
                 downloaded_bottles
                     .iter()
-                    .map(|b| b.name.as_str())
+                    .map(DownloadedBottle::name)
                     .collect::<Vec<_>>()
                     .join(" "),
             );

@@ -12,10 +12,10 @@ use crate::db::{
 #[diesel(table_name = downloaded_bottles)]
 #[diesel(check_for_backend(Sqlite))]
 pub struct DownloadedBottle {
-    pub id: i32,
-    pub name: String,
-    pub version: String,
-    pub path: String,
+    id: i32,
+    name: String,
+    version: String,
+    path: String,
 }
 
 #[derive(Insertable)]
@@ -31,9 +31,8 @@ struct NewDownloadedBottle<'a> {
 #[diesel(table_name = linked_files)]
 #[diesel(check_for_backend(Sqlite))]
 pub struct LinkedFile {
-    pub id: i32,
-    pub path: String,
-    pub bottle_id: i32,
+    id: i32,
+    path: String,
 }
 
 #[derive(Insertable)]
@@ -105,6 +104,18 @@ impl DownloadedBottle {
         Ok(())
     }
 
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn version(&self) -> &str {
+        &self.version
+    }
+
+    pub fn path(&self) -> &Path {
+        self.path.as_ref()
+    }
+
     pub fn linked_files(&self) -> anyhow::Result<Vec<LinkedFile>> {
         use linked_files::dsl;
 
@@ -145,5 +156,9 @@ impl LinkedFile {
             .execute(&mut *db)?;
 
         Ok(())
+    }
+
+    pub fn path(&self) -> &Path {
+        self.path.as_ref()
     }
 }
