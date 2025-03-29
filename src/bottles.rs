@@ -7,7 +7,11 @@ use reqwest::blocking::Response;
 use serde::Deserialize;
 
 use crate::{
-    cache::http_client, db::models::InstalledBottle, dirs, formulae::Formula, validate::Validate,
+    cache::http_client,
+    db::models::{InstalledBottle, LinkedFile},
+    dirs,
+    formulae::Formula,
+    validate::Validate,
 };
 
 #[derive(Debug, Deserialize)]
@@ -151,7 +155,9 @@ impl InstalledBottle {
                 continue;
             }
 
-            unix::fs::symlink(entry_path, dest)?;
+            unix::fs::symlink(&entry_path, &dest)?;
+
+            LinkedFile::create(&dest, self)?;
         }
 
         Ok(())
