@@ -1,7 +1,7 @@
 // @generated automatically by Diesel CLI.
 
 diesel::table! {
-    installed_bottles (id) {
+    downloaded_bottles (id) {
         id -> Integer,
         name -> Text,
         version -> Text,
@@ -17,9 +17,9 @@ diesel::table! {
     }
 }
 
-diesel::joinable!(linked_files -> installed_bottles (bottle_id));
+diesel::joinable!(linked_files -> downloaded_bottles (bottle_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    installed_bottles,
+    downloaded_bottles,
     linked_files,
 );

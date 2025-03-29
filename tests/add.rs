@@ -1,14 +1,11 @@
 use std::{env, fs, path::PathBuf, process::Command};
 
 #[test]
-fn test_install_gh() {
+fn test_add_gh() {
     let output = output_dir();
 
     let program = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/chug");
-    let status = Command::new(program)
-        .args(["install", "gh"])
-        .status()
-        .unwrap();
+    let status = Command::new(program).args(["add", "gh"]).status().unwrap();
     assert!(status.success());
 
     let program = output.bin_dir().join("gh");

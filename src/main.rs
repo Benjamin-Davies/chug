@@ -11,23 +11,23 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Install { bottles: Vec<String> },
+    Add { bottles: Vec<String> },
 }
 
 fn main() -> anyhow::Result<()> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Install { bottles } => {
+        Commands::Add { bottles } => {
             anyhow::ensure!(
                 bottles.len() >= 1,
-                "Must specify one or more bottles to install",
+                "Must specify one or more bottles to add",
             );
 
             let new_roots = bottles.iter().map(String::as_str).collect();
             let formulae = Formula::resolve_dependencies(new_roots)?;
             println!(
-                "Installing: {}",
+                "Adding: {}",
                 formulae.keys().cloned().collect::<Vec<_>>().join(" ")
             );
 

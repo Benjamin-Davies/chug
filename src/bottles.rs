@@ -8,7 +8,7 @@ use serde::Deserialize;
 
 use crate::{
     cache::http_client,
-    db::models::{InstalledBottle, LinkedFile},
+    db::models::{DownloadedBottle, LinkedFile},
     dirs,
     formulae::Formula,
     validate::Validate,
@@ -31,8 +31,8 @@ pub struct FileMetadata {
 }
 
 impl Formula {
-    pub fn download_bottle(&self) -> anyhow::Result<InstalledBottle> {
-        if let Some(bottle) = InstalledBottle::get(&self.name, &self.versions.stable)? {
+    pub fn download_bottle(&self) -> anyhow::Result<DownloadedBottle> {
+        if let Some(bottle) = DownloadedBottle::get(&self.name, &self.versions.stable)? {
             return Ok(bottle);
         }
 
@@ -53,7 +53,7 @@ impl Formula {
 
     /// Expects the bottle to not already be downloaded and will not clean up if
     /// the download fails.
-    fn download_bottle_inner(&self) -> anyhow::Result<InstalledBottle> {
+    fn download_bottle_inner(&self) -> anyhow::Result<DownloadedBottle> {
         let bottles_dir = dirs::bottles_dir()?;
         let file_metadata = self.bottle.stable.current_target()?;
 
@@ -68,7 +68,7 @@ impl Formula {
 
         raw_data.validate()?;
 
-        let bottle = InstalledBottle::create(&self.name, &self.versions.stable, &path)?;
+        let bottle = DownloadedBottle::create(&self.name, &self.versions.stable, &path)?;
 
         Ok(bottle)
     }
@@ -135,7 +135,7 @@ impl FileMetadata {
     }
 }
 
-impl InstalledBottle {
+impl DownloadedBottle {
     pub fn link(&self) -> anyhow::Result<()> {
         println!("Linking {} {}...", self.name, self.version);
 
