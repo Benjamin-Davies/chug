@@ -1,4 +1,9 @@
-use std::{collections::BTreeMap, fs, os::unix, path::PathBuf};
+use std::{
+    collections::BTreeMap,
+    fs,
+    os::unix,
+    path::{Path, PathBuf},
+};
 
 use anyhow::Context;
 use data_encoding::HEXLOWER;
@@ -159,6 +164,32 @@ impl DownloadedBottle {
 
             LinkedFile::create(&dest, self)?;
         }
+
+        Ok(())
+    }
+
+    pub fn unlink(&self) -> anyhow::Result<()> {
+        println!("Unlinking {} {}...", self.name, self.version);
+
+        for linked_file in self.linked_files()? {
+            fs::remove_file(&linked_file.path)?;
+
+            linked_file.delete()?;
+        }
+
+        Ok(())
+    }
+
+    pub fn remove(&self) -> anyhow::Result<()> {
+        println!("Deleting {} {}...", self.name, self.version);
+
+        let path: &Path = self.path.as_ref();
+        fs::remove_dir_all(path)?;
+        if let Some(parent) = path.parent() {
+            let _ = fs::remove_dir(parent);
+        }
+
+        self.delete()?;
 
         Ok(())
     }

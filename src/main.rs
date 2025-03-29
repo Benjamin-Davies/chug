@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use chug::formulae::Formula;
+use chug::{db::models::DownloadedBottle, formulae::Formula};
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 #[derive(Parser)]
@@ -11,7 +11,15 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Add { bottles: Vec<String> },
+    Add {
+        bottles: Vec<String>,
+    },
+    Remove {
+        bottles: Vec<String>,
+        /// Remove all downloaded bottles.
+        #[arg(long)]
+        all: bool,
+    },
 }
 
 fn main() -> anyhow::Result<()> {
@@ -54,6 +62,28 @@ fn main() -> anyhow::Result<()> {
                 })
                 .collect::<anyhow::Result<Vec<_>>>()?;
         }
+        Commands::Remove { all: true, .. } => {
+            let downloaded_bottles = DownloadedBottle::get_all()?;
+            anyhow::ensure!(downloaded_bottles.len() >= 1, "No bottles to remove");
+
+            println!(
+                "Removing: {}",
+                downloaded_bottles
+                    .iter()
+                    .map(|b| b.name.as_str())
+                    .collect::<Vec<_>>()
+                    .join(" "),
+            );
+
+            for bottle in downloaded_bottles {
+                bottle.unlink()?;
+                bottle.remove()?;
+            }
+        }
+        Commands::Remove {
+            bottles: _,
+            all: false,
+        } => todo!(),
     }
 
     Ok(())

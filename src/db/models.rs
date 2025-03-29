@@ -79,6 +79,44 @@ impl DownloadedBottle {
             Ok(None)
         }
     }
+
+    pub fn get_all() -> anyhow::Result<Vec<DownloadedBottle>> {
+        use downloaded_bottles::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        let results = dsl::downloaded_bottles
+            .order((dsl::name, dsl::version))
+            .select(DownloadedBottle::as_select())
+            .load(&mut *db)?;
+
+        Ok(results)
+    }
+
+    pub fn delete(&self) -> anyhow::Result<()> {
+        use downloaded_bottles::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        diesel::delete(downloaded_bottles::table)
+            .filter(dsl::id.eq(self.id))
+            .execute(&mut *db)?;
+
+        Ok(())
+    }
+
+    pub fn linked_files(&self) -> anyhow::Result<Vec<LinkedFile>> {
+        use linked_files::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        let results = dsl::linked_files
+            .filter(dsl::bottle_id.eq(self.id))
+            .select(LinkedFile::as_select())
+            .load(&mut *db)?;
+
+        Ok(results)
+    }
 }
 
 impl LinkedFile {
@@ -92,6 +130,18 @@ impl LinkedFile {
             })
             .on_conflict(linked_files::dsl::path)
             .do_nothing()
+            .execute(&mut *db)?;
+
+        Ok(())
+    }
+
+    pub fn delete(&self) -> anyhow::Result<()> {
+        use linked_files::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        diesel::delete(linked_files::table)
+            .filter(dsl::id.eq(self.id))
             .execute(&mut *db)?;
 
         Ok(())
