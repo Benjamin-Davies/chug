@@ -6,7 +6,9 @@ use flate2::read::GzDecoder;
 use reqwest::blocking::Response;
 use serde::Deserialize;
 
-use crate::{cache::http_client, dirs, formulae::Formula, validate::Validate};
+use crate::{
+    cache::http_client, db::models::InstalledBottle, dirs, formulae::Formula, validate::Validate,
+};
 
 #[derive(Debug, Deserialize)]
 pub struct Bottles {
@@ -24,20 +26,10 @@ pub struct FileMetadata {
     pub sha256: String,
 }
 
-#[derive(Debug)]
-pub struct DownloadedBottle<'a> {
-    pub formula: &'a Formula,
-    pub path: PathBuf,
-}
-
 impl Formula {
-    pub fn download_bottle(&self) -> anyhow::Result<DownloadedBottle> {
-        if let Some(path) = self.bottle_path()? {
-            println!("Bottle {:?} already downloaded", self.name);
-            return Ok(DownloadedBottle {
-                formula: self,
-                path,
-            });
+    pub fn download_bottle(&self) -> anyhow::Result<InstalledBottle> {
+        if let Some(bottle) = InstalledBottle::get(&self.name, &self.versions.stable)? {
+            return Ok(bottle);
         }
 
         println!("Dowloading {} {}...", self.name, self.versions.stable);
@@ -57,7 +49,7 @@ impl Formula {
 
     /// Expects the bottle to not already be downloaded and will not clean up if
     /// the download fails.
-    fn download_bottle_inner(&self) -> anyhow::Result<DownloadedBottle> {
+    fn download_bottle_inner(&self) -> anyhow::Result<InstalledBottle> {
         let bottles_dir = dirs::bottles_dir()?;
         let file_metadata = self.bottle.stable.current_target()?;
 
@@ -72,10 +64,9 @@ impl Formula {
 
         raw_data.validate()?;
 
-        Ok(DownloadedBottle {
-            formula: self,
-            path,
-        })
+        let bottle = InstalledBottle::create(&self.name, &self.versions.stable, &path)?;
+
+        Ok(bottle)
     }
 
     pub fn bottle_path(&self) -> anyhow::Result<Option<PathBuf>> {
@@ -140,15 +131,12 @@ impl FileMetadata {
     }
 }
 
-impl DownloadedBottle<'_> {
+impl InstalledBottle {
     pub fn link(&self) -> anyhow::Result<()> {
-        println!(
-            "Linking {} {}...",
-            self.formula.name, self.formula.versions.stable,
-        );
+        println!("Linking {} {}...", self.name, self.version);
 
         let bin_dir = dirs::bin_dir()?;
-        let bottle_bin_dir = self.path.join("bin");
+        let bottle_bin_dir = PathBuf::from(&self.path).join("bin");
 
         if !bottle_bin_dir.exists() {
             anyhow::bail!("Bottle does not contain a bin directory");

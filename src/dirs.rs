@@ -74,3 +74,11 @@ pub fn bottles_dir() -> anyhow::Result<&'static Path> {
     })?;
     Ok(path)
 }
+
+pub fn db_file() -> anyhow::Result<&'static Path> {
+    let path = cache!(PathBuf).get_or_init(|| {
+        let path = data_dir()?.join("db.sqlite");
+        Ok(path)
+    })?;
+    Ok(path)
+}
