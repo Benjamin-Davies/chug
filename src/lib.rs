@@ -4,6 +4,7 @@ mod dirs;
 mod macho;
 mod magic;
 
+pub mod action_builder;
 pub mod bottles;
 pub mod db;
 pub mod formulae;

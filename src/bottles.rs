@@ -76,6 +76,8 @@ impl Formula {
 
         let bottle = DownloadedBottle::create(&self.name, &self.versions.stable, &path)?;
 
+        bottle.patch()?;
+
         Ok(bottle)
     }
 
@@ -179,8 +181,17 @@ impl DownloadedBottle {
                 let entry_path = entry.path();
                 let entry_name = entry.file_name();
                 let dest = bin_dir.join(entry_name);
+
                 if dest.exists() {
-                    continue;
+                    if let Ok(existing_path) = fs::read_link(&dest) {
+                        if existing_path.starts_with(dirs::bottles_dir()?) {
+                            fs::remove_file(&dest)?;
+                        } else {
+                            continue;
+                        }
+                    } else {
+                        continue;
+                    }
                 }
 
                 unix::fs::symlink(&entry_path, &dest)?;
@@ -195,8 +206,13 @@ impl DownloadedBottle {
     pub fn unlink(&self) -> anyhow::Result<()> {
         println!("Unlinking {} {}...", self.name(), self.version());
 
+        let bottle_dir = self.path();
         for linked_file in self.linked_files()? {
-            fs::remove_file(linked_file.path())?;
+            if let Ok(linked_path) = fs::read_link(linked_file.path()) {
+                if linked_path.starts_with(bottle_dir) {
+                    fs::remove_file(linked_file.path())?;
+                }
+            }
 
             linked_file.delete()?;
         }
@@ -207,7 +223,7 @@ impl DownloadedBottle {
     pub fn remove(&self) -> anyhow::Result<()> {
         println!("Deleting {} {}...", self.name(), self.version());
 
-        fs::remove_dir_all(self.path())?;
+        let _ = fs::remove_dir_all(self.path());
         if let Some(parent) = self.path().parent() {
             let _ = fs::remove_dir(parent);
         }

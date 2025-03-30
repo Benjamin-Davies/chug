@@ -1,7 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use chug::{db::models::DownloadedBottle, formulae::Formula};
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use chug::action_builder::{ActionBuilder, BottleForestSnapshot};
 
 #[derive(Parser)]
 struct Cli {
@@ -27,64 +26,25 @@ fn main() -> anyhow::Result<()> {
 
     match cli.command {
         Commands::Add { bottles } => {
-            anyhow::ensure!(
-                bottles.len() >= 1,
-                "Must specify one or more bottles to add",
-            );
-
-            let new_roots = bottles.iter().map(String::as_str).collect();
-            let formulae = Formula::resolve_dependencies(new_roots)?;
-            println!(
-                "Adding: {}",
-                formulae.keys().cloned().collect::<Vec<_>>().join(" ")
-            );
-
-            let bottles = formulae
-                .par_iter()
-                .map(|(name, formula)| {
-                    anyhow::ensure!(
-                        formula.versions.bottle,
-                        "Formula {name:?} does not have a corresponding bottle",
-                    );
-
-                    let bottle = formula.download_bottle()?;
-                    bottle.patch()?;
-
-                    Ok(bottle)
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?;
-
-            bottles
-                .par_iter()
-                .map(|bottle| {
-                    bottle.link()?;
-
-                    Ok(())
-                })
-                .collect::<anyhow::Result<Vec<_>>>()?;
+            let snapshot = BottleForestSnapshot::new()?;
+            ActionBuilder::new(&snapshot).add(&bottles)?.run()?;
         }
-        Commands::Remove { all: true, .. } => {
-            let downloaded_bottles = DownloadedBottle::get_all()?;
-            anyhow::ensure!(downloaded_bottles.len() >= 1, "No bottles to remove");
-
-            println!(
-                "Removing: {}",
-                downloaded_bottles
-                    .iter()
-                    .map(DownloadedBottle::name)
-                    .collect::<Vec<_>>()
-                    .join(" "),
+        Commands::Remove { all: true, bottles } => {
+            anyhow::ensure!(
+                bottles.is_empty(),
+                "Cannot specify bottles when --all is used",
             );
 
-            for bottle in downloaded_bottles {
-                bottle.unlink()?;
-                bottle.remove()?;
-            }
+            let snapshot = BottleForestSnapshot::new()?;
+            ActionBuilder::new(&snapshot).remove_all().run()?;
         }
         Commands::Remove {
-            bottles: _,
+            bottles,
             all: false,
-        } => todo!(),
+        } => {
+            let snapshot = BottleForestSnapshot::new()?;
+            ActionBuilder::new(&snapshot).remove(&bottles)?.run()?;
+        }
     }
 
     Ok(())

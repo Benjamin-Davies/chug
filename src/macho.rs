@@ -42,14 +42,9 @@ pub fn patch(path: &Path) -> anyhow::Result<()> {
         return Ok(());
     }
 
-    dbg!(path, &macho.libs);
-
     let mut macho = arwen::macho::MachoContainer::parse(&bytes)?;
     for (old, new) in &replacements {
-        dbg!(old, new);
-        if let Err(err) = macho.change_install_name(old, new) {
-            dbg!(err);
-        }
+        macho.change_install_name(old, new)?;
     }
 
     let old_permissions = path.metadata()?.permissions();

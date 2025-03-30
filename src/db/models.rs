@@ -5,10 +5,10 @@ use diesel::{prelude::*, sqlite::Sqlite};
 
 use crate::db::{
     connection,
-    schema::{downloaded_bottles, linked_files},
+    schema::{dependencies, downloaded_bottles, linked_files},
 };
 
-#[derive(Queryable, Selectable)]
+#[derive(Clone, Debug, Queryable, Selectable)]
 #[diesel(table_name = downloaded_bottles)]
 #[diesel(check_for_backend(Sqlite))]
 pub struct DownloadedBottle {
@@ -18,7 +18,7 @@ pub struct DownloadedBottle {
     path: String,
 }
 
-#[derive(Insertable)]
+#[derive(Debug, Insertable)]
 #[diesel(table_name = downloaded_bottles)]
 #[diesel(check_for_backend(Sqlite))]
 struct NewDownloadedBottle<'a> {
@@ -27,7 +27,7 @@ struct NewDownloadedBottle<'a> {
     path: &'a str,
 }
 
-#[derive(Queryable, Selectable)]
+#[derive(Debug, Queryable, Selectable)]
 #[diesel(table_name = linked_files)]
 #[diesel(check_for_backend(Sqlite))]
 pub struct LinkedFile {
@@ -35,12 +35,20 @@ pub struct LinkedFile {
     path: String,
 }
 
-#[derive(Insertable)]
+#[derive(Debug, Insertable)]
 #[diesel(table_name = linked_files)]
 #[diesel(check_for_backend(Sqlite))]
 struct NewLinkedFile<'a> {
     path: &'a str,
     bottle_id: i32,
+}
+
+#[derive(Debug, Queryable, Selectable, Insertable)]
+#[diesel(table_name = dependencies)]
+#[diesel(check_for_backend(Sqlite))]
+pub struct Dependency {
+    dependent_id: Option<i32>,
+    dependency_id: i32,
 }
 
 impl DownloadedBottle {
@@ -79,6 +87,19 @@ impl DownloadedBottle {
         }
     }
 
+    fn get_by_id(id: i32) -> anyhow::Result<DownloadedBottle> {
+        use downloaded_bottles::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        let result = dsl::downloaded_bottles
+            .filter(dsl::id.eq(id))
+            .select(Self::as_select())
+            .first(&mut *db)?;
+
+        Ok(result)
+    }
+
     pub fn get_all() -> anyhow::Result<Vec<DownloadedBottle>> {
         use downloaded_bottles::dsl;
 
@@ -102,6 +123,10 @@ impl DownloadedBottle {
             .execute(&mut *db)?;
 
         Ok(())
+    }
+
+    pub fn id(&self) -> i32 {
+        self.id
     }
 
     pub fn name(&self) -> &str {
@@ -160,5 +185,66 @@ impl LinkedFile {
 
     pub fn path(&self) -> &Path {
         self.path.as_ref()
+    }
+}
+
+impl Dependency {
+    pub fn get_all() -> anyhow::Result<Vec<Dependency>> {
+        use dependencies::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        let result = dsl::dependencies
+            .select(Dependency::as_select())
+            .load(&mut *db)?;
+
+        Ok(result)
+    }
+
+    pub fn replace_all<'a>(
+        dependencies: impl Iterator<Item = (Option<&'a DownloadedBottle>, &'a DownloadedBottle)>,
+    ) -> anyhow::Result<()> {
+        use dependencies::dsl;
+
+        let mut db = connection()?.lock().unwrap();
+
+        db.transaction::<(), anyhow::Error, _>(|db| {
+            diesel::delete(dsl::dependencies).execute(db)?;
+
+            let new_dependencies = dependencies
+                .map(|(dependent, dependency)| Dependency {
+                    dependent_id: dependent.map(|b| b.id),
+                    dependency_id: dependency.id,
+                })
+                .collect::<Vec<_>>();
+            diesel::insert_into(dsl::dependencies)
+                .values(&new_dependencies)
+                .execute(db)?;
+
+            Ok(())
+        })?;
+
+        Ok(())
+    }
+
+    /// Returns `None` if the bottle was manually added, i.e. if it is a root.
+    pub fn dependent(&self) -> anyhow::Result<Option<DownloadedBottle>> {
+        if let Some(id) = self.dependent_id {
+            Ok(Some(DownloadedBottle::get_by_id(id)?))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn dependent_id(&self) -> Option<i32> {
+        self.dependent_id
+    }
+
+    pub fn dependency(&self) -> anyhow::Result<DownloadedBottle> {
+        DownloadedBottle::get_by_id(self.dependency_id)
+    }
+
+    pub fn dependency_id(&self) -> i32 {
+        self.dependency_id
     }
 }
