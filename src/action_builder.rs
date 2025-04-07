@@ -100,6 +100,24 @@ impl<'a> ActionBuilder<'a> {
         Ok(self)
     }
 
+    pub fn update(mut self) -> anyhow::Result<Self> {
+        let roots = self
+            .dependencies
+            .iter()
+            .filter(|(a, _)| a.is_none())
+            .map(|(_, b)| Formula::get_exact(b.name))
+            .collect::<Result<Vec<_>, _>>()?;
+
+        self.bottles = roots.iter().copied().map(BottleRef::from).collect();
+        self.dependencies = roots
+            .iter()
+            .copied()
+            .map(|f| (None, BottleRef::from(f)))
+            .collect();
+
+        Ok(self)
+    }
+
     pub fn run(mut self) -> anyhow::Result<()> {
         self.fix_dependencies()?;
 

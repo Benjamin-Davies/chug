@@ -183,15 +183,13 @@ impl DownloadedBottle {
                 let dest = bin_dir.join(entry_name);
 
                 if dest.exists() {
-                    if let Ok(existing_path) = fs::read_link(&dest) {
-                        if existing_path.starts_with(dirs::bottles_dir()?) {
-                            fs::remove_file(&dest)?;
-                        } else {
-                            continue;
-                        }
-                    } else {
+                    let Ok(existing_path) = fs::read_link(&dest) else {
+                        continue;
+                    };
+                    if !existing_path.starts_with(dirs::bottles_dir()?) {
                         continue;
                     }
+                    fs::remove_file(&dest)?;
                 }
 
                 unix::fs::symlink(&entry_path, &dest)?;

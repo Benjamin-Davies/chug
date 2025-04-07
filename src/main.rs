@@ -19,6 +19,7 @@ enum Commands {
         #[arg(long)]
         all: bool,
     },
+    Update,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -44,6 +45,10 @@ fn main() -> anyhow::Result<()> {
         } => {
             let snapshot = BottleForestSnapshot::new()?;
             ActionBuilder::new(&snapshot).remove(&bottles)?.run()?;
+        }
+        Commands::Update => {
+            let snapshot = BottleForestSnapshot::new()?;
+            ActionBuilder::new(&snapshot).update()?.run()?;
         }
     }
 
