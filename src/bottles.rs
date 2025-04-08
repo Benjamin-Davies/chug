@@ -192,9 +192,9 @@ impl DownloadedBottle {
                     fs::remove_file(&dest)?;
                 }
 
-                unix::fs::symlink(&entry_path, &dest)?;
-
                 LinkedFile::create(&dest, self)?;
+
+                unix::fs::symlink(&entry_path, &dest)?;
             }
         }
 
