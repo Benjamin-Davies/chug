@@ -65,6 +65,16 @@ impl<'a> ActionBuilder<'a> {
 
     pub fn add(mut self, bottles: &[String]) -> anyhow::Result<Self> {
         for name in bottles {
+            if self
+                .bottles
+                .range(BottleRef { name, version: "" }..)
+                .take_while(|b| b.name == name)
+                .count()
+                > 0
+            {
+                continue;
+            }
+
             let formula = Formula::get(name)?;
             self.bottles.insert(formula.into());
             self.dependencies.insert((None, formula.into()));
