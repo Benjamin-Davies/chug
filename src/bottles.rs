@@ -161,7 +161,10 @@ impl DownloadedBottle {
                 }
             } else if stat.is_file() {
                 match magic::detect(path).unwrap_or(magic::Magic::Unknown) {
+                    #[cfg(target_os = "macos")]
                     magic::Magic::MachO => macho::patch(path)?,
+                    #[cfg(target_os = "linux")]
+                    magic::Magic::Elf => todo!(),
                     _ => (),
                 }
             }

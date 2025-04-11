@@ -5,6 +5,7 @@ use std::{fs::File, io::Read, path::Path};
 pub enum Magic {
     MachO,
     FatMachO,
+    Elf,
     Unknown,
 }
 
@@ -16,6 +17,7 @@ pub fn detect(path: &Path) -> anyhow::Result<Magic> {
     match u32::from_be_bytes(magic) {
         0xCAFEBABE => Ok(Magic::FatMachO),
         0xFEEDFACE | 0xFEEDFACF | 0xCEFAEDFE | 0xCFFAEDFE => Ok(Magic::MachO),
+        0x7F454C46 => Ok(Magic::Elf),
         _ => Ok(Magic::Unknown),
     }
 }
