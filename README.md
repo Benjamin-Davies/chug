@@ -4,6 +4,14 @@ The fastest way to consume Homebrew bottles.
 
 ## Installation
 
+To install the latest release:
+
+```sh
+curl -fsSL https://chug.bend.nz/install.sh | sh
+```
+
+Or, to install from source:
+
 ```sh
 cargo install chug-cli
 ```
@@ -37,7 +45,7 @@ chug update
 
 - [ ] Issues around patching on macOS (particularly for `python@3.13`)
 - [ ] Linux support
-- [ ] `curl -fsSL https://chug.bend.nz/install.sh | sh`
+- [x] `curl -fsSL https://chug.bend.nz/install.sh | sh`
 - [ ] `chug list` and `chug tree`
 
 ## Non-goals
