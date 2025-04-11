@@ -25,3 +25,27 @@ fn test_remove_python() {
     let bottles_dir = output.data_dir().join("chug/bottles");
     assert_eq!(fs::read_dir(&bottles_dir).unwrap().count(), 0);
 }
+
+#[test]
+fn test_remove_go_by_alias() {
+    let output = output_dir::new();
+
+    let program = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target/debug/chug");
+    let status = Command::new(&program)
+        .args(["add", "golang"])
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let status = Command::new(&program)
+        .args(["remove", "golang"])
+        .status()
+        .unwrap();
+    assert!(status.success());
+
+    let program = output.bin_dir().join("go");
+    assert!(!program.try_exists().unwrap());
+
+    let bottles_dir = output.data_dir().join("chug/bottles");
+    assert_eq!(fs::read_dir(&bottles_dir).unwrap().count(), 0);
+}

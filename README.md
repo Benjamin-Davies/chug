@@ -4,13 +4,12 @@ The fastest way to consume Homebrew bottles.
 
 ## TODO List
 
-- [ ] Command to update bottles
-- [ ] Ensure that dependencies are up to date when adding packages
+- [ ] Issues around patching on macOS (particularly for `python@3.13`)
+- [ ] Linux support
 
 ## Non-goals
 
-These may change in the future, but for now I do not intend to support:
+To keep this project fast and maintainable, the following are non-goals:
 
 - Casks or building formulae from source
 - Non-Homebrew sources
-- Linux

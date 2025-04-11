@@ -90,17 +90,24 @@ impl<'a> ActionBuilder<'a> {
     }
 
     pub fn remove(mut self, bottles: &'a [String]) -> anyhow::Result<Self> {
-        for name in bottles {
+        for alias in bottles {
+            let formula = Formula::get(alias);
+            let name = formula.as_ref().map_or(alias.as_str(), |f| &f.name);
+
             let bottles_with_name = self
                 .bottles
                 .range(BottleRef { name, version: "" }..)
                 .take_while(|b| b.name == name)
                 .copied()
                 .collect::<Vec<BottleRef<'a>>>();
-            anyhow::ensure!(
-                !bottles_with_name.is_empty(),
-                "Could not remove {name} as it is not installed"
-            );
+
+            if bottles_with_name.is_empty() {
+                if formula.is_ok() {
+                    anyhow::bail!("Could not remove {name} as it is not installed");
+                } else {
+                    anyhow::bail!("No such formula {name}");
+                }
+            }
 
             for bottle in bottles_with_name {
                 self.bottles.remove(&bottle);
