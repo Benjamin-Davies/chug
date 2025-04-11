@@ -5,7 +5,7 @@ The fastest way to consume Homebrew bottles.
 ## Installation
 
 ```sh
-cargo install --git https://github.com/Benjamin-Davies/chug.git
+cargo install chug-cli
 ```
 
 ## Usage

@@ -1,6 +1,6 @@
 use clap::{Parser, Subcommand};
 
-use chug::action_builder::{ActionBuilder, BottleForestSnapshot};
+use chug_cli::action_builder::{ActionBuilder, BottleForestSnapshot};
 
 #[derive(Parser)]
 struct Cli {
