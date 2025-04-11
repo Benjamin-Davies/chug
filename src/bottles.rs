@@ -106,7 +106,7 @@ impl Formula {
             let child = child?;
             let file_name = child.file_name();
             let file_name = file_name.to_str().context("Invalid file name")?;
-            if file_name.starts_with(&version) && file_name[version.len()..].starts_with('_') {
+            if file_name.starts_with(version) && file_name[version.len()..].starts_with('_') {
                 return Ok(Some(child.path()));
             }
         }

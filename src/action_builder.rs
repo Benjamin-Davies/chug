@@ -63,7 +63,7 @@ impl<'a> ActionBuilder<'a> {
         }
     }
 
-    pub fn add(mut self, bottles: &[String]) -> anyhow::Result<Self> {
+    pub fn add_bottles(mut self, bottles: &[String]) -> anyhow::Result<Self> {
         for name in bottles {
             if self
                 .bottles
@@ -89,7 +89,7 @@ impl<'a> ActionBuilder<'a> {
         self
     }
 
-    pub fn remove(mut self, bottles: &'a [String]) -> anyhow::Result<Self> {
+    pub fn remove_bottles(mut self, bottles: &'a [String]) -> anyhow::Result<Self> {
         for alias in bottles {
             let formula = Formula::get(alias);
             let name = formula.as_ref().map_or(alias.as_str(), |f| &f.name);
@@ -196,14 +196,14 @@ impl<'a> ActionBuilder<'a> {
         Dependency::replace_all(
             self.dependencies
                 .iter()
-                .map(|(a, b)| (a.map(|a| bottles_by_ref[&a]), bottles_by_ref[&b])),
+                .map(|(a, b)| (a.map(|a| bottles_by_ref[&a]), bottles_by_ref[b])),
         )?;
 
         // Remove old bottles
         to_remove
             .par_iter()
             .map(|bottle_ref| {
-                let bottle = bottles_by_ref[&bottle_ref];
+                let bottle = bottles_by_ref[bottle_ref];
                 bottle.unlink()?;
                 bottle.remove()?;
 

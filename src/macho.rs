@@ -1,4 +1,4 @@
-use std::{fs, path::Path, process::Command};
+use std::{fs, os::unix::fs::PermissionsExt, path::Path, process::Command};
 
 use anyhow::Context;
 
@@ -51,7 +51,7 @@ pub fn patch(path: &Path) -> anyhow::Result<()> {
     let mut modified_permissions = false;
     if old_permissions.readonly() {
         let mut new_permissions = old_permissions.clone();
-        new_permissions.set_readonly(false);
+        new_permissions.set_mode(0o600);
         fs::set_permissions(path, new_permissions)?;
         modified_permissions = true;
     }

@@ -33,7 +33,7 @@ fn main() -> anyhow::Result<()> {
     match cli.command {
         Commands::Add { bottles } => {
             let snapshot = BottleForestSnapshot::new()?;
-            ActionBuilder::new(&snapshot).add(&bottles)?.run()?;
+            ActionBuilder::new(&snapshot).add_bottles(&bottles)?.run()?;
         }
         Commands::Remove { all: true, bottles } => {
             anyhow::ensure!(
@@ -49,7 +49,9 @@ fn main() -> anyhow::Result<()> {
             all: false,
         } => {
             let snapshot = BottleForestSnapshot::new()?;
-            ActionBuilder::new(&snapshot).remove(&bottles)?.run()?;
+            ActionBuilder::new(&snapshot)
+                .remove_bottles(&bottles)?
+                .run()?;
         }
         Commands::Update => {
             let snapshot = BottleForestSnapshot::new()?;

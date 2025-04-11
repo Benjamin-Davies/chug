@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::Entry};
 
 use serde::Deserialize;
 
@@ -65,13 +65,13 @@ impl Formula {
     pub fn resolve_dependencies(
         roots: Vec<&str>,
     ) -> anyhow::Result<BTreeMap<&'static str, &'static Formula>> {
-        let mut result = BTreeMap::new();
+        let mut result = BTreeMap::<&str, &Formula>::new();
         let mut stack = roots;
         while let Some(name) = stack.pop() {
             let formula = Formula::get(name)?;
 
-            if !result.contains_key(&formula.name.as_str()) {
-                result.insert(formula.name.as_str(), formula);
+            if let Entry::Vacant(entry) = result.entry(formula.name.as_str()) {
+                entry.insert(formula);
 
                 for dependency in &formula.dependencies {
                     if !result.contains_key(&dependency.as_str()) {
