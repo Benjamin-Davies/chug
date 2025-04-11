@@ -9,4 +9,5 @@ pub mod bottles;
 pub mod db;
 pub mod formulae;
 pub mod target;
+pub mod tree;
 pub mod validate;

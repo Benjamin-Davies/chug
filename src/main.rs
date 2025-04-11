@@ -1,6 +1,9 @@
 use clap::{Parser, Subcommand};
 
-use chug_cli::action_builder::{ActionBuilder, BottleForestSnapshot};
+use chug_cli::{
+    action_builder::{ActionBuilder, BottleForestSnapshot},
+    tree::{display_tree, list_bottles},
+};
 
 #[derive(Parser)]
 struct Cli {
@@ -25,6 +28,10 @@ enum Commands {
     },
     /// Update already-downloaded bottles.
     Update,
+    /// List all downloaded bottles.
+    List,
+    /// Display a tree of all downloaded bottles.
+    Tree,
 }
 
 fn main() -> anyhow::Result<()> {
@@ -56,6 +63,12 @@ fn main() -> anyhow::Result<()> {
         Commands::Update => {
             let snapshot = BottleForestSnapshot::new()?;
             ActionBuilder::new(&snapshot).update()?.run()?;
+        }
+        Commands::List => {
+            list_bottles()?;
+        }
+        Commands::Tree => {
+            display_tree()?;
         }
     }
 
