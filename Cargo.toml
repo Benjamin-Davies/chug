@@ -11,6 +11,10 @@ repository = "https://github.com/Benjamin-Davies/chug"
 name = "chug"
 path = "src/main.rs"
 
+[package.metadata.binstall]
+pkg-url = "https://github.com/Benjamin-Davies/chug/releases/latest/download/chug"
+pkg-fmt = "bin"
+
 [dependencies]
 anyhow = "1.0.97"
 arwen = "0.0.1"
