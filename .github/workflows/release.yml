@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  release_macos:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Lint
+        run: cargo clippy --tests -- --deny warnings
+      - name: Release build
+        run: cargo build --release
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          path: target/release/chug

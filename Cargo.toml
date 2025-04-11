@@ -7,6 +7,10 @@ description = "The fastest way to consume Homebrew bottles"
 license = "MIT"
 repository = "https://github.com/Benjamin-Davies/chug"
 
+[[bin]]
+name = "chug"
+path = "src/main.rs"
+
 [dependencies]
 anyhow = "1.0.97"
 arwen = "0.0.1"
