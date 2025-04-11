@@ -63,20 +63,25 @@ impl Formula {
         let bottles_dir = dirs::bottles_dir()?;
         let file_metadata = self.bottle.stable.current_target()?;
 
-        let mut raw_data = file_metadata.fetch()?;
+        let mut raw_data = file_metadata
+            .fetch()
+            .context("Failed to fetch bottle archive")?;
         let unzip = GzDecoder::new(&mut raw_data);
         let mut tar = tar::Archive::new(unzip);
-        tar.unpack(bottles_dir)?;
+        tar.unpack(bottles_dir)
+            .context("Failed to unpack bottle archive")?;
 
         let path = self
             .bottle_path()?
             .context("Failed to find where bottle was extracted to")?;
 
-        raw_data.validate()?;
+        raw_data
+            .validate()
+            .context("Failed to validate bottle download")?;
 
         let bottle = DownloadedBottle::create(&self.name, &self.versions.stable, &path)?;
 
-        bottle.patch()?;
+        bottle.patch().context("Failed to patch bottle")?;
 
         Ok(bottle)
     }
@@ -146,7 +151,9 @@ impl FileMetadata {
 impl DownloadedBottle {
     pub fn patch(&self) -> anyhow::Result<()> {
         fn traverse(path: &Path) -> anyhow::Result<()> {
-            let stat = path.metadata()?;
+            let stat = path
+                .symlink_metadata()
+                .with_context(|| format!("Failed to get metadata for {}", path.display()))?;
             if stat.is_dir() {
                 for entry in fs::read_dir(path)? {
                     let entry = entry?;
