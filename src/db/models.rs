@@ -53,7 +53,7 @@ pub struct Dependency {
 
 impl DownloadedBottle {
     pub fn create(name: &str, version: &str, path: &Path) -> anyhow::Result<DownloadedBottle> {
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         let result = diesel::insert_into(downloaded_bottles::table)
             .values(NewDownloadedBottle {
@@ -70,7 +70,7 @@ impl DownloadedBottle {
     pub fn get(name: &str, version: &str) -> anyhow::Result<Option<DownloadedBottle>> {
         use downloaded_bottles::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
         let name_value = name;
         let version_value = version;
 
@@ -90,7 +90,7 @@ impl DownloadedBottle {
     fn get_by_id(id: i32) -> anyhow::Result<DownloadedBottle> {
         use downloaded_bottles::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         let result = dsl::downloaded_bottles
             .filter(dsl::id.eq(id))
@@ -103,7 +103,7 @@ impl DownloadedBottle {
     pub fn get_all() -> anyhow::Result<Vec<DownloadedBottle>> {
         use downloaded_bottles::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         let results = dsl::downloaded_bottles
             .order((dsl::name, dsl::version))
@@ -116,7 +116,7 @@ impl DownloadedBottle {
     pub fn delete(&self) -> anyhow::Result<()> {
         use downloaded_bottles::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         diesel::delete(downloaded_bottles::table)
             .filter(dsl::id.eq(self.id))
@@ -144,7 +144,7 @@ impl DownloadedBottle {
     pub fn linked_files(&self) -> anyhow::Result<Vec<LinkedFile>> {
         use linked_files::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         let results = dsl::linked_files
             .filter(dsl::bottle_id.eq(self.id))
@@ -157,7 +157,7 @@ impl DownloadedBottle {
 
 impl LinkedFile {
     pub fn create(path: &Path, bottle: &DownloadedBottle) -> anyhow::Result<()> {
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         diesel::insert_into(linked_files::table)
             .values(NewLinkedFile {
@@ -174,7 +174,7 @@ impl LinkedFile {
     pub fn delete(&self) -> anyhow::Result<()> {
         use linked_files::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         diesel::delete(linked_files::table)
             .filter(dsl::id.eq(self.id))
@@ -192,7 +192,7 @@ impl Dependency {
     pub fn get_all() -> anyhow::Result<Vec<Dependency>> {
         use dependencies::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         let result = dsl::dependencies
             .select(Dependency::as_select())
@@ -206,7 +206,7 @@ impl Dependency {
     ) -> anyhow::Result<()> {
         use dependencies::dsl;
 
-        let mut db = connection()?.lock().unwrap();
+        let mut db = connection()?;
 
         db.transaction::<(), anyhow::Error, _>(|db| {
             diesel::delete(dsl::dependencies).execute(db)?;

@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 
 use anyhow::{Context, anyhow};
 use diesel::{prelude::*, sql_query};
@@ -11,8 +11,8 @@ pub mod schema;
 
 const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
-fn connection() -> anyhow::Result<&'static Mutex<SqliteConnection>> {
-    cache!(Mutex<SqliteConnection>).get_or_init(|| {
+fn connection() -> anyhow::Result<MutexGuard<'static, SqliteConnection>> {
+    let mutex = cache!(Mutex<SqliteConnection>).get_or_init(|| {
         let path = db_file()?.to_str().context("DB file path is non-utf8")?;
         let mut db = SqliteConnection::establish(path)?;
 
@@ -22,5 +22,7 @@ fn connection() -> anyhow::Result<&'static Mutex<SqliteConnection>> {
             .map_err(|e| anyhow!(e))?;
 
         Ok(Mutex::new(db))
-    })
+    })?;
+
+    Ok(mutex.lock().unwrap())
 }
