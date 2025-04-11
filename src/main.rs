@@ -10,15 +10,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Download and link bottles.
     Add {
+        /// Bottles to add.
         bottles: Vec<String>,
     },
+    /// Unlink and remove bottles.
     Remove {
+        /// Bottles to remove.
         bottles: Vec<String>,
         /// Remove all downloaded bottles.
         #[arg(long)]
         all: bool,
     },
+    /// Update already-downloaded bottles.
     Update,
 }
 
