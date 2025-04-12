@@ -1,13 +1,14 @@
 #[macro_use]
 mod cache;
+mod db;
 mod dirs;
+mod extract;
 mod macho;
 mod magic;
+mod target;
+mod validate;
 
 pub mod action_builder;
 pub mod bottles;
-pub mod db;
 pub mod formulae;
-pub mod target;
 pub mod tree;
-pub mod validate;
