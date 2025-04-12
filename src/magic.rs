@@ -1,6 +1,6 @@
 //! Detect file magic numbers
 
-use std::{fs::File, io::Read, path::Path};
+use anyhow::Context;
 
 pub enum Magic {
     MachO,
@@ -9,10 +9,13 @@ pub enum Magic {
     Unknown,
 }
 
-pub fn detect(path: &Path) -> anyhow::Result<Magic> {
-    let mut file = File::open(path)?;
+pub fn detect(contents: &[u8]) -> anyhow::Result<Magic> {
     let mut magic = [0u8; 4];
-    file.read_exact(&mut magic)?;
+    magic.copy_from_slice(
+        contents
+            .get(..4)
+            .context("File too short to detect magic number")?,
+    );
 
     match u32::from_be_bytes(magic) {
         0xCAFEBABE => Ok(Magic::FatMachO),

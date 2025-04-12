@@ -1,4 +1,4 @@
-use std::{fs, os::unix::fs::PermissionsExt, path::Path, process::Command};
+use std::{fs, path::Path, process::Command};
 
 use anyhow::Context;
 
@@ -7,9 +7,8 @@ use crate::dirs;
 const HOMEBREW_PREFIX_PLACEHOLDER: &str = "@@HOMEBREW_PREFIX@@";
 const HOMEBREW_CELLAR_PLACEHOLDER: &str = "@@HOMEBREW_CELLAR@@";
 
-pub fn patch(path: &Path) -> anyhow::Result<()> {
-    let bytes = fs::read(path)?;
-    let macho = goblin::mach::MachO::parse(&bytes, 0)?;
+pub fn patch_and_write(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
+    let macho = goblin::mach::MachO::parse(contents, 0)?;
 
     let homebrew_prefix = dirs::data_dir()?
         .to_str()
@@ -39,21 +38,13 @@ pub fn patch(path: &Path) -> anyhow::Result<()> {
     }
 
     if replacements.is_empty() {
+        fs::write(path, contents)?;
         return Ok(());
     }
 
-    let mut macho = arwen::macho::MachoContainer::parse(&bytes)?;
+    let mut macho = arwen::macho::MachoContainer::parse(contents)?;
     for (old, new) in &replacements {
         macho.change_install_name(old, new)?;
-    }
-
-    let old_permissions = path.metadata()?.permissions();
-    let mut modified_permissions = false;
-    if old_permissions.readonly() {
-        let mut new_permissions = old_permissions.clone();
-        new_permissions.set_mode(0o600);
-        fs::set_permissions(path, new_permissions)?;
-        modified_permissions = true;
     }
 
     fs::write(path, macho.data)?;
@@ -65,10 +56,6 @@ pub fn patch(path: &Path) -> anyhow::Result<()> {
         .arg(path)
         .output()
         .context("Failed to codesign patched binary")?;
-
-    if modified_permissions {
-        fs::set_permissions(path, old_permissions)?;
-    }
 
     Ok(())
 }

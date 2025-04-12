@@ -36,6 +36,8 @@ chug update
   - Chug downloads and extracts bottles in parallel
   - Chug extracts bottles as they are being downloaded
   - Chug avoids using external programs where practical
+  - Chug avoids creating temporary files where practical
+  - Chug assumes the user will only install a given version once, so there is no point in caching bottle downloads
 - Cleanliness
   - Chug installs packages on a per-user basis
   - Chug avoids changing permissions for `/usr/local`, `/opt/homebrew`, etc.
