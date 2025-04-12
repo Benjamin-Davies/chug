@@ -10,7 +10,7 @@ use crate::{
     cache::http_client,
     db::models::{DownloadedBottle, LinkedFile},
     dirs,
-    extract::extract_and_patch,
+    extract::extract,
     formulae::Formula,
     validate::Validate,
 };
@@ -61,7 +61,7 @@ impl Formula {
             .fetch()
             .context("Failed to fetch bottle archive")?;
         let unzip = GzDecoder::new(&mut raw_data);
-        let path = extract_and_patch(unzip, self)?;
+        let path = extract(unzip, self)?;
 
         raw_data
             .validate()
@@ -72,7 +72,7 @@ impl Formula {
         Ok(bottle)
     }
 
-    pub fn bottle_path(&self) -> anyhow::Result<Option<PathBuf>> {
+    fn bottle_path(&self) -> anyhow::Result<Option<PathBuf>> {
         let name = self.name.as_str();
         let version = self.versions.stable.as_str();
 
