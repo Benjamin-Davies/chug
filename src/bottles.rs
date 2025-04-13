@@ -137,6 +137,12 @@ impl DownloadedBottle {
     pub fn link(&self) -> anyhow::Result<()> {
         println!("Linking {} {}...", self.name(), self.version());
 
+        let opt_dir = dirs::opt_dir()?.join(self.name());
+        if opt_dir.exists() {
+            fs::remove_file(&opt_dir)?;
+        }
+        unix::fs::symlink(self.path(), &opt_dir)?;
+
         let bin_dir = dirs::bin_dir()?;
         let bottle_bin_dir = PathBuf::from(self.path()).join("bin");
 
@@ -163,11 +169,26 @@ impl DownloadedBottle {
             }
         }
 
+        // Replicate some important post-install scripts
+        if self.name() == "ca-certificates" {
+            // See also: https://github.com/Homebrew/homebrew-core/blob/39c62e85e1aafaaf438741b7d0d37b35bdbb9b32/Formula/c/ca-certificates.rb#L123
+            let source = self.path().join("share/ca-certificates/cacert.pem");
+            let destination_dir = dirs::etc_dir()?.join("ca-certificates");
+            let destination = destination_dir.join("cert.pem");
+            fs::create_dir_all(&destination_dir)?;
+            fs::copy(&source, &destination)?;
+        }
+
         Ok(())
     }
 
     pub fn unlink(&self) -> anyhow::Result<()> {
         println!("Unlinking {} {}...", self.name(), self.version());
+
+        let opt_dir = dirs::opt_dir()?.join(self.name());
+        if fs::read_link(&opt_dir)? == self.path() {
+            fs::remove_file(&opt_dir)?;
+        }
 
         let bottle_dir = self.path();
         for linked_file in self.linked_files()? {

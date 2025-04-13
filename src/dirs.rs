@@ -75,6 +75,28 @@ pub fn bottles_dir() -> anyhow::Result<&'static Path> {
     Ok(path)
 }
 
+pub fn etc_dir() -> anyhow::Result<&'static Path> {
+    let path = cache!(PathBuf).get_or_init(|| {
+        let path = data_dir()?.join("etc");
+
+        fs::create_dir_all(&path).expect("Could not create etc dir");
+
+        Ok(path)
+    })?;
+    Ok(path)
+}
+
+pub fn opt_dir() -> anyhow::Result<&'static Path> {
+    let path = cache!(PathBuf).get_or_init(|| {
+        let path = data_dir()?.join("opt");
+
+        fs::create_dir_all(&path).expect("Could not create opt dir");
+
+        Ok(path)
+    })?;
+    Ok(path)
+}
+
 pub fn db_file() -> anyhow::Result<&'static Path> {
     let path = cache!(PathBuf).get_or_init(|| {
         let path = data_dir()?.join("db.sqlite");
