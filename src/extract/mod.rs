@@ -7,7 +7,13 @@ use std::{
 
 use anyhow::Context;
 
-use crate::{dirs, formulae::Formula, magic};
+use crate::{dirs, formulae::Formula};
+
+#[cfg(target_os = "macos")]
+mod macho;
+mod magic;
+
+pub mod validate;
 
 pub fn extract(archive: impl io::Read, formula: &Formula) -> anyhow::Result<PathBuf> {
     let bottles_dir = dirs::bottles_dir()?;
@@ -123,7 +129,7 @@ fn sanitise_path(base_dir: &Path, path: &Path) -> Option<PathBuf> {
 fn patch_and_write(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
     match magic::detect(contents).unwrap_or(magic::Magic::Unknown) {
         #[cfg(target_os = "macos")]
-        magic::Magic::MachO => crate::macho::patch_and_write(path, contents)?,
+        magic::Magic::MachO => macho::patch_and_write(path, contents)?,
         #[cfg(target_os = "linux")]
         magic::Magic::Elf => todo!(),
         _ => fs::write(path, contents)?,

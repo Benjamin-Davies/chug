@@ -10,9 +10,8 @@ use crate::{
     cache::http_client,
     db::models::{DownloadedBottle, LinkedFile},
     dirs,
-    extract::extract,
+    extract::{extract, validate::Validate},
     formulae::Formula,
-    validate::Validate,
 };
 
 #[derive(Debug, Deserialize)]
