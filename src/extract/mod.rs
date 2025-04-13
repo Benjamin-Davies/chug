@@ -1,11 +1,12 @@
 use std::{
     fs,
     io::{self, Read},
-    os::unix::{self, fs::PermissionsExt},
+    os::unix::{self, ffi::OsStrExt, fs::PermissionsExt},
     path::{Component, Path, PathBuf},
 };
 
 use anyhow::Context;
+use memchr::memmem;
 
 use crate::{dirs, formulae::Formula};
 
@@ -14,6 +15,10 @@ mod macho;
 mod magic;
 
 pub mod validate;
+
+const HOMEBREW_PREFIX_PLACEHOLDER: &str = "@@HOMEBREW_PREFIX@@";
+const HOMEBREW_CELLAR_PLACEHOLDER: &str = "@@HOMEBREW_CELLAR@@";
+const PLACEHOLDER_PREFIX: &str = "@@HOMEBREW_";
 
 pub fn extract(archive: impl io::Read, formula: &Formula) -> anyhow::Result<PathBuf> {
     let bottles_dir = dirs::bottles_dir()?;
@@ -132,7 +137,36 @@ fn patch_and_write(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
         magic::Magic::MachO => macho::patch_and_write(path, contents)?,
         #[cfg(target_os = "linux")]
         magic::Magic::Elf => todo!(),
-        _ => fs::write(path, contents)?,
+        _ => patch_and_write_misc(path, contents)?,
+    }
+
+    Ok(())
+}
+
+fn patch_and_write_misc(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
+    let homebrew_prefix = dirs::data_dir()?.as_os_str().as_bytes();
+    let homebrew_cellar = dirs::bottles_dir()?.as_os_str().as_bytes();
+
+    let mut output = Vec::new();
+    let mut last_index = 0;
+    for index in memmem::find_iter(contents, PLACEHOLDER_PREFIX) {
+        if contents[index..].starts_with(HOMEBREW_CELLAR_PLACEHOLDER.as_bytes()) {
+            output.extend_from_slice(&contents[last_index..index]);
+            output.extend_from_slice(homebrew_cellar);
+            last_index = index + HOMEBREW_CELLAR_PLACEHOLDER.len();
+        } else if contents[index..].starts_with(HOMEBREW_PREFIX_PLACEHOLDER.as_bytes()) {
+            output.extend_from_slice(&contents[last_index..index]);
+            output.extend_from_slice(homebrew_prefix);
+            last_index = index + HOMEBREW_PREFIX_PLACEHOLDER.len();
+        }
+    }
+
+    if output.is_empty() {
+        // Output will be empty if no occurrences of the placeholder were found
+        fs::write(path, contents)?;
+    } else {
+        output.extend_from_slice(&contents[last_index..]);
+        fs::write(path, output)?;
     }
 
     Ok(())

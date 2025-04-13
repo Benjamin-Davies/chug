@@ -4,8 +4,7 @@ use anyhow::Context;
 
 use crate::dirs;
 
-const HOMEBREW_PREFIX_PLACEHOLDER: &str = "@@HOMEBREW_PREFIX@@";
-const HOMEBREW_CELLAR_PLACEHOLDER: &str = "@@HOMEBREW_CELLAR@@";
+use super::{HOMEBREW_CELLAR_PLACEHOLDER, HOMEBREW_PREFIX_PLACEHOLDER};
 
 pub fn patch_and_write(path: &Path, contents: &[u8]) -> anyhow::Result<()> {
     let macho = goblin::mach::MachO::parse(contents, 0)?;

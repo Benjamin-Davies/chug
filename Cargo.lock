@@ -217,6 +217,7 @@ dependencies = [
  "diesel_migrations",
  "flate2",
  "goblin",
+ "memchr",
  "ptree",
  "rayon",
  "reqwest",
