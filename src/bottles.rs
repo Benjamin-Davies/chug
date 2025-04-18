@@ -186,8 +186,10 @@ impl DownloadedBottle {
         println!("Unlinking {} {}...", self.name(), self.version());
 
         let opt_dir = dirs::opt_dir()?.join(self.name());
-        if fs::read_link(&opt_dir)? == self.path() {
-            fs::remove_file(&opt_dir)?;
+        if let Ok(linked_path) = fs::read_link(&opt_dir) {
+            if linked_path == self.path() {
+                fs::remove_file(&opt_dir)?;
+            }
         }
 
         let bottle_dir = self.path();
