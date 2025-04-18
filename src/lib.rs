@@ -3,6 +3,7 @@ mod cache;
 mod db;
 mod dirs;
 mod extract;
+mod status;
 mod target;
 
 pub mod action_builder;

@@ -12,6 +12,7 @@ use crate::{
     dirs,
     extract::{extract, validate::Validate},
     formulae::Formula,
+    status::ProgressHandle,
 };
 
 #[derive(Debug, Deserialize)]
@@ -31,13 +32,12 @@ pub struct FileMetadata {
 }
 
 impl Formula {
-    pub fn download_bottle(&self) -> anyhow::Result<DownloadedBottle> {
+    pub fn download_bottle(&self, progress: &ProgressHandle) -> anyhow::Result<DownloadedBottle> {
         if let Some(bottle) = DownloadedBottle::get(&self.name, &self.versions.stable)? {
             return Ok(bottle);
         }
 
-        println!("Dowloading {} {}...", self.name, self.versions.stable);
-        let result = self.download_bottle_inner();
+        let result = self.download_bottle_inner(progress);
 
         if result.is_err() {
             if let Ok(Some(path)) = self.bottle_path() {
@@ -53,13 +53,14 @@ impl Formula {
 
     /// Expects the bottle to not already be downloaded and will not clean up if
     /// the download fails.
-    fn download_bottle_inner(&self) -> anyhow::Result<DownloadedBottle> {
+    fn download_bottle_inner(&self, progress: &ProgressHandle) -> anyhow::Result<DownloadedBottle> {
         let file_metadata = self.bottle.stable.current_target()?;
 
         let mut raw_data = file_metadata
             .fetch()
             .context("Failed to fetch bottle archive")?;
-        let unzip = GzDecoder::new(&mut raw_data);
+        let tracked = progress.track(&mut raw_data);
+        let unzip = GzDecoder::new(tracked);
         let path = extract(unzip, self)?;
 
         raw_data

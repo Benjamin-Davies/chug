@@ -2,6 +2,8 @@ use std::io;
 
 use ring::digest::{self, SHA256};
 
+use crate::status::ContentLength;
+
 pub struct Validate<R> {
     inner: R,
     digest_context: digest::Context,
@@ -32,5 +34,11 @@ impl<R: io::Read> io::Read for Validate<R> {
         let len = self.inner.read(buf)?;
         self.digest_context.update(&buf[..len]);
         Ok(len)
+    }
+}
+
+impl<R: ContentLength> ContentLength for Validate<R> {
+    fn content_length(&self) -> u64 {
+        self.inner.content_length()
     }
 }

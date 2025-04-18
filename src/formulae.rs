@@ -1,8 +1,11 @@
-use std::collections::{BTreeMap, btree_map::Entry};
+use std::{
+    collections::{BTreeMap, btree_map::Entry},
+    io::Read,
+};
 
 use serde::Deserialize;
 
-use crate::bottles::Bottles;
+use crate::{bottles::Bottles, status::Progress};
 
 const FORMULA_API: &str = "https://formulae.brew.sh/api/formula.json";
 
@@ -26,8 +29,17 @@ impl Formula {
         let formulae = cache!(Vec<Formula>)
             .with_file("formula.json")
             .get_or_init_json(|| {
-                println!("Downloading fresh formula list...");
-                let json = reqwest::blocking::get(FORMULA_API)?.text()?;
+                let progress = Progress::new();
+                let progress = progress.start("Formula List".to_owned())?;
+
+                let response = reqwest::blocking::get(FORMULA_API)?;
+
+                let mut tracked = progress.track(response);
+                let mut json = String::new();
+                tracked.read_to_string(&mut json)?;
+
+                progress.finish()?;
+
                 Ok(json)
             })?;
         Ok(formulae)

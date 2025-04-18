@@ -1,10 +1,14 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fmt,
+};
 
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
 use crate::{
     db::models::{Dependency, DownloadedBottle},
     formulae::Formula,
+    status::{Progress, print_list},
 };
 
 #[derive(Debug)]
@@ -152,8 +156,19 @@ impl<'a> ActionBuilder<'a> {
             !to_add.is_empty() || !to_remove.is_empty(),
             "No bottles to add or remove",
         );
+        if !to_add.is_empty() {
+            println!("Adding bottles:");
+            print_list(&to_add)?;
+            println!();
+        }
+        if !to_remove.is_empty() {
+            println!("Removing bottles:");
+            print_list(&to_remove)?;
+            println!();
+        }
 
         // Add new bottles
+        let progress = Progress::new();
         let downloaded_bottles = to_add
             .par_iter()
             .map(|bottle_ref| {
@@ -169,7 +184,9 @@ impl<'a> ActionBuilder<'a> {
                     formula.name,
                 );
 
-                let bottle = formula.download_bottle()?;
+                let progress = progress.start(bottle_ref.to_string())?;
+                let bottle = formula.download_bottle(&progress)?;
+                progress.finish()?;
 
                 Ok(bottle)
             })
@@ -344,5 +361,11 @@ impl<'a> From<&'a Formula> for BottleRef<'a> {
             name: &formula.name,
             version: &formula.versions.stable,
         }
+    }
+}
+
+impl fmt::Display for BottleRef<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{} {}", self.name, self.version)
     }
 }
